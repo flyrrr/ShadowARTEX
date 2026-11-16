@@ -1,20 +1,18 @@
 <div align="center">
 
-<img src="web/public/logo.svg" width="84" alt="ARTEX logo" />
+<img src="web/public/logo.svg" width="84" alt="ShadowARTEX logo" />
 
-# ARTEX
+# ShadowARTEX
 
-**Autonomous penetration testing that keeps its receipts.**
+**Autonomous penetration testing that keeps its receipts — now with enforced anonymity.**
 
-(upstream: [Autumn-27/ARTEX](https://github.com/Autumn-27), AGPL-3.0)
+A mod of [BaaRai/ARTEX](https://github.com/BaaRai/ARTEX) (upstream: [Autumn-27](https://github.com/Autumn-27)) that adds **Opsec**: code-enforced anonymous egress via Tor, fail-closed. AGPL-3.0.
 
 Self-hosted multi-agent offensive security. A planner explores, workers run real tools,
 and every finding stays bound to the assets and HTTP traffic that prove it.
 
-[![Release](https://img.shields.io/github/v/release/BaaRai/ARTEX?label=release&color=6b34db)](https://github.com/BaaRai/ARTEX/releases)
-[![License](https://img.shields.io/github/license/BaaRai/ARTEX?color=6b34db)](LICENSE)
-[![CI](https://github.com/BaaRai/ARTEX/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BaaRai/ARTEX/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/github/go-mod/go-version/BaaRai/ARTEX?color=6b34db)](go.mod)
+[![License](https://img.shields.io/github/license/flyrrr/ShadowARTEX?color=6b34db)](LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/flyrrr/ShadowARTEX?color=6b34db)](go.mod)
 
 [Quick start](#quick-start) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Configuration](#configuration) · [Security](SECURITY.md)
 
@@ -721,7 +719,9 @@ Operational security properties:
 
 ## About this fork
 
-This repository is the English translation and continuation of ARTEX, originally by [Autumn-27](https://github.com/Autumn-27). The upstream repository is no longer public, so the link points to the author profile. Changes in this fork are tracked in [CHANGELOG.md](CHANGELOG.md), under the same AGPL-3.0 license.
+**ShadowARTEX** is a mod of [ARTEX](https://github.com/BaaRai/ARTEX) by [flyrrr](https://github.com/flyrrr). It adds **Opsec** — code-enforced anonymous egress via Tor (fail-closed) — described in the [Opsec section](#opsec-enforced-anonymous-egress) above and in [CHANGELOG.md](CHANGELOG.md).
+
+[BaaRai/ARTEX](https://github.com/BaaRai/ARTEX) is the English translation and continuation of the original ARTEX by [Autumn-27](https://github.com/Autumn-27) (the original upstream is no longer public, so the link points to the author profile). ShadowARTEX keeps the same AGPL-3.0 license and all prior attribution; its own changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
