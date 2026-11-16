@@ -15,24 +15,18 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-// TorCheckURL is the service queried through Tor to learn the exit IP and
-// whether the traffic really left via the Tor network.
 const TorCheckURL = "https://check.torproject.org/api/ip"
 
-// TorStatus is the result of a Tor reachability + exit check.
 type TorStatus struct {
-	Reachable bool      `json:"reachable"`         // the SOCKS5 port accepted a connection and the probe completed
-	IsTor     bool      `json:"is_tor"`            // check.torproject.org confirmed a Tor exit
-	ExitIP    string    `json:"exit_ip,omitempty"` // the exit IP as seen by the check service
-	Addr      string    `json:"addr"`              // the SOCKS5 host:port probed
-	InDocker  bool      `json:"in_docker"`         // whether ARTEX runs in a container
-	CheckedAt time.Time `json:"checked_at"`        // when the probe ran
-	Err       string    `json:"error,omitempty"`   // failure detail when not reachable
+	Reachable bool      `json:"reachable"`
+	IsTor     bool      `json:"is_tor"`
+	ExitIP    string    `json:"exit_ip,omitempty"`
+	Addr      string    `json:"addr"`
+	InDocker  bool      `json:"in_docker"`
+	CheckedAt time.Time `json:"checked_at"`
+	Err       string    `json:"error,omitempty"`
 }
 
-// socksDialer returns a context dialer for this State's Tor SOCKS5 endpoint.
-// Names are resolved by the proxy (remote DNS), so a target name never resolves
-// on the host.
 func (s *State) socksDialer() (proxy.ContextDialer, error) {
 	d, err := proxy.SOCKS5("tcp", s.TorAddr(), nil, &net.Dialer{Timeout: 15 * time.Second})
 	if err != nil {
@@ -45,7 +39,6 @@ func (s *State) socksDialer() (proxy.ContextDialer, error) {
 	return cd, nil
 }
 
-// torHTTPClient is an HTTP client whose every connection goes through Tor.
 func (s *State) torHTTPClient(timeout time.Duration) (*http.Client, error) {
 	cd, err := s.socksDialer()
 	if err != nil {
@@ -56,14 +49,11 @@ func (s *State) torHTTPClient(timeout time.Duration) (*http.Client, error) {
 		TLSHandshakeTimeout:   timeout,
 		ResponseHeaderTimeout: timeout,
 		DisableKeepAlives:     true,
-		Proxy:                 nil, // never read HTTP_PROXY etc.: Tor is the only path
+		Proxy:                 nil,
 	}
 	return &http.Client{Transport: tr, Timeout: timeout}, nil
 }
 
-// TestTor probes the Tor SOCKS5 endpoint and checks the exit via TorCheckURL.
-// It never falls back to a direct connection: a failure means Tor is the only
-// path and it is down.
 func (s *State) TestTor(ctx context.Context) TorStatus {
 	st := TorStatus{Addr: s.TorAddr(), InDocker: s.inDocker, CheckedAt: time.Now()}
 	client, err := s.torHTTPClient(20 * time.Second)
@@ -100,25 +90,18 @@ func (s *State) TestTor(ctx context.Context) TorStatus {
 	return st
 }
 
-// DNSLeakResult reports whether target names are resolved remotely by Tor
-// rather than on the host.
 type DNSLeakResult struct {
 	OK     bool   `json:"ok"`
 	Detail string `json:"detail"`
 	ExitIP string `json:"exit_ip,omitempty"`
 }
 
-// TestDNSLeak connects to the check host through Tor using the proxy's own
-// (remote) name resolution. A success with a Tor exit proves the name was
-// resolved by Tor, not by the host resolver, so there is no DNS leak for
-// external targets.
 func (s *State) TestDNSLeak(ctx context.Context) DNSLeakResult {
 	cd, err := s.socksDialer()
 	if err != nil {
 		return DNSLeakResult{Detail: "tor socks5 dialer: " + err.Error()}
 	}
-	// Dial by NAME (not a pre-resolved IP): x/net SOCKS5 sends the name to Tor,
-	// which resolves it at the exit. If this works, host DNS was not used.
+
 	dialCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	conn, err := cd.DialContext(dialCtx, "tcp", "check.torproject.org:443")
@@ -134,18 +117,12 @@ func (s *State) TestDNSLeak(ctx context.Context) DNSLeakResult {
 		Detail: "target names are resolved remotely by Tor (socks5h); no clearnet DNS for external targets. Exit IP " + st.ExitIP + "."}
 }
 
-// ClearnetBlockResult reports whether a direct (non-Tor) connection to an
-// external target is blocked by policy.
 type ClearnetBlockResult struct {
 	Blocked bool   `json:"blocked"`
 	Target  string `json:"target"`
 	Reason  string `json:"reason"`
 }
 
-// TestClearnetBlock reports the enforcement decision for a direct connection to
-// target when Opsec is on: an external target is blocked (fail closed), a
-// bypass-listed one is allowed direct. It changes nothing; it reflects exactly
-// what the dialer and the Bash env enforce.
 func (s *State) TestClearnetBlock(target string) ClearnetBlockResult {
 	if strings.TrimSpace(target) == "" {
 		target = "example.com:443"
@@ -169,10 +146,6 @@ func (s *State) TestClearnetBlock(target string) ClearnetBlockResult {
 	return res
 }
 
-// NewNym asks Tor to build fresh circuits (SIGNAL NEWNYM) over the control
-// port. password is the control-port password (empty for an open/NULL control
-// port). It is best effort: a clear error is returned when the control port is
-// unreachable or auth fails.
 func (s *State) NewNym(ctx context.Context, password string) error {
 	d := net.Dialer{Timeout: 10 * time.Second}
 	conn, err := d.DialContext(ctx, "tcp", s.TorControlAddr())
@@ -196,7 +169,6 @@ func (s *State) NewNym(ctx context.Context, password string) error {
 	return nil
 }
 
-// ctrlCmd writes one control-port command and checks for a 250 reply.
 func ctrlCmd(w io.Writer, br *bufio.Reader, cmd string) error {
 	if _, err := io.WriteString(w, cmd); err != nil {
 		return err

@@ -13,17 +13,8 @@ import (
 	"github.com/Autumn-27/artex/opsec"
 )
 
-// OpsecClearnetBlocked is the dial error code when Opsec blocks a direct
-// connection to an external target (no Tor path).
 const OpsecClearnetBlocked = "OPSEC_CLEARNET_BLOCKED"
 
-// opsecGate blocks a direct connection to an external target when Opsec is on.
-// It runs before the target gate and independently of it: every platform-owned
-// HTTP client dials through PinnedDialer, so when a proxy (Tor / the recording
-// proxy, both bypass-listed) is in use the dial is to that proxy and passes,
-// while a direct dial to an external target — a client with no proxy, or a
-// leaked fallback — is refused with no clearnet fallback and logged. addr is
-// host:port as net/http dials it.
 func opsecGate(toolName, addr string) error {
 	op := opsec.Current()
 	if !op.Enabled() {

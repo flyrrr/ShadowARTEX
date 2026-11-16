@@ -7,27 +7,10 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// ClassifyBash inspects a Bash command line and reports whether, under Opsec,
-// it must be blocked because it uses an egress mode that cannot be carried by a
-// SOCKS5 proxy / Tor and would therefore leak the real source or exit directly:
-//
-//   - raw-packet nmap scans (-sS/-sU/-sO SYN/UDP/IP, FIN/NULL/Xmas/ACK/Window/
-//     Maimon), OS detection (-O), and ICMP/ARP host discovery (-sn, -PE/-PP/-PM,
-//     --traceroute). Only a TCP connect scan with -Pn (nmap -sT -Pn) is allowed,
-//     since proxychains can carry its connect() calls.
-//   - ICMP / raw-socket tools: ping, traceroute, mtr, hping3, fping, arping,
-//     masscan, zmap — none of which use connect() and so bypass LD_PRELOAD and
-//     the SOCKS proxy entirely.
-//
-// It walks every simple command in the line (across pipes, lists and
-// substitutions), so a dangerous program hidden in a pipeline is still caught.
-// reason is empty when nothing is blocked. ClassifyBash never inspects targets;
-// it classifies the command shape only.
 func ClassifyBash(command string) (blocked bool, reason string) {
 	f, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "")
 	if err != nil {
-		// Unparseable here is not a block: the real Bash gate and the guard
-		// evaluate the command; opsec only adds the egress-mode check.
+
 		return false, ""
 	}
 	syntax.Walk(f, func(n syntax.Node) bool {
@@ -51,9 +34,6 @@ func ClassifyBash(command string) (blocked bool, reason string) {
 	return blocked, reason
 }
 
-// litWord extracts the literal text of a word, best effort: an expansion or
-// substitution contributes nothing, which is fine for matching program names
-// and flags.
 func litWord(w *syntax.Word) string {
 	var sb strings.Builder
 	for _, part := range w.Parts {
@@ -73,25 +53,18 @@ func litWord(w *syntax.Word) string {
 	return sb.String()
 }
 
-// icmpRawTools are programs that use ICMP or raw sockets and cannot be proxied
-// through SOCKS5 / Tor at all.
 var icmpRawTools = map[string]bool{
 	"ping": true, "ping6": true, "traceroute": true, "traceroute6": true,
 	"tracepath": true, "mtr": true, "hping3": true, "fping": true, "fping6": true,
 	"arping": true, "masscan": true, "zmap": true,
 }
 
-// argvWrappers run another program given as their arguments; the real program
-// follows the wrapper and its own flags. Opsec unwraps them so a raw scan
-// hidden behind proxychains/sudo is still classified.
 var argvWrappers = map[string]bool{
 	"proxychains": true, "proxychains4": true, "torsocks": true,
 	"sudo": true, "env": true, "nice": true, "ionice": true,
 	"stdbuf": true, "setsid": true, "nohup": true, "command": true,
 }
 
-// unwrap advances past leading wrapper programs and their flags, returning the
-// argv of the real program.
 func unwrap(args []string) []string {
 	for len(args) > 0 && argvWrappers[path.Base(args[0])] {
 		i := 1
@@ -106,7 +79,6 @@ func unwrap(args []string) []string {
 	return args
 }
 
-// classifyArgv classifies one simple command's argv.
 func classifyArgv(args []string) (blocked bool, reason string) {
 	args = unwrap(args)
 	if len(args) == 0 {
@@ -125,8 +97,6 @@ func classifyArgv(args []string) (blocked bool, reason string) {
 	return false, ""
 }
 
-// forbiddenNmapScan lists the scan-type flags that send raw packets and bypass
-// any SOCKS proxy. -O is OS detection; -sn is ping/host discovery.
 var forbiddenNmapScan = map[string]string{
 	"-sS": "SYN scan", "-sU": "UDP scan", "-sO": "IP-protocol scan",
 	"-sN": "NULL scan", "-sF": "FIN scan", "-sX": "Xmas scan",
@@ -135,8 +105,6 @@ var forbiddenNmapScan = map[string]string{
 	"-O": "OS detection", "-sn": "ping/host-discovery scan",
 }
 
-// classifyNmap allows only a TCP connect scan with -Pn (nmap -sT -Pn), which
-// proxychains can carry; every other scan mode sends raw packets and is blocked.
 func classifyNmap(rest []string) (blocked bool, reason string) {
 	hasConnect, hasPn := false, false
 	for _, a := range rest {
@@ -151,7 +119,7 @@ func classifyNmap(rest []string) (blocked bool, reason string) {
 		case "--traceroute":
 			return true, "nmap --traceroute sends raw packets that bypass Tor/SOCKS5. Remove it under Opsec."
 		default:
-			// -PE/-PP/-PM and -PR are ICMP/ARP host discovery.
+
 			if strings.HasPrefix(a, "-PE") || strings.HasPrefix(a, "-PP") ||
 				strings.HasPrefix(a, "-PM") || a == "-PR" {
 				return true, "nmap " + a + " is ICMP/ARP host discovery that bypasses Tor/SOCKS5. Use -Pn under Opsec."

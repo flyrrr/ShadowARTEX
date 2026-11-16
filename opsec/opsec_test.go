@@ -7,10 +7,10 @@ import (
 
 func TestBypassMatcher(t *testing.T) {
 	s := New(Config{Enabled: true, Bypass: []string{
-		"http://my-ollama.local:11434", // URL → host
-		"192.168.50.0/24",              // CIDR
-		".corp.internal",               // suffix
-		"llama.lan:8000",               // host:port → host
+		"http://my-ollama.local:11434",
+		"192.168.50.0/24",
+		".corp.internal",
+		"llama.lan:8000",
 	}})
 	direct := []string{
 		"127.0.0.1", "127.0.0.1:8787", "localhost", "::1", "[::1]:5432",
@@ -42,7 +42,7 @@ func TestTorURLsAndDefaults(t *testing.T) {
 	if got, want := s.TorProxyURLRemoteDNS(), "socks5h://127.0.0.1:9050"; got != want {
 		t.Errorf("TorProxyURLRemoteDNS = %q, want %q", got, want)
 	}
-	// Zero port → default; custom host kept.
+
 	s2 := New(Config{TorHost: "tor"})
 	if s2.TorPort() != DefaultTorPort {
 		t.Errorf("default port = %d, want %d", s2.TorPort(), DefaultTorPort)
@@ -69,7 +69,7 @@ func TestNoProxyListHasInfra(t *testing.T) {
 }
 
 func TestProxychainsConf(t *testing.T) {
-	// A numeric IP so the proxychains host-resolution is a deterministic no-op.
+
 	s := New(Config{TorHost: "127.0.0.1", TorPort: 9050})
 	conf := s.ProxychainsConf()
 	for _, want := range []string{"strict_chain", "proxy_dns", "socks5 127.0.0.1 9050"} {

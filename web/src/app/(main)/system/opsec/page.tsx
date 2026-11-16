@@ -60,8 +60,8 @@ export default function OpsecPage() {
     try {
       const r = await api.opsecLeaks(200);
       setLeaks(r.leaks ?? []);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      void e;
     }
   }, []);
 
@@ -87,7 +87,6 @@ export default function OpsecPage() {
         tor_port: Number(torPort) || 9050,
         control_port: Number(controlPort) || 9051,
         bypass_list: bypassList,
-        // Send the password only when the user changed it (not the mask).
         ...(controlPassword && controlPassword !== MASK ? { control_password: controlPassword } : {}),
       };
       const s = await api.putOpsecSettings(body);
@@ -103,7 +102,6 @@ export default function OpsecPage() {
   const toggleEnabled = async (v: boolean) => {
     setEnabled(v);
     await save({ enabled: v });
-    // Re-probe so the banner reflects reality right away.
     if (v) void runTestTor();
   };
 
@@ -171,8 +169,7 @@ export default function OpsecPage() {
       </div>
       <p className="text-muted-foreground -mt-2 text-sm">
         Enforces anonymous egress in code: with Opsec on, every external tool call (Bash, WebFetch,
-        http, scanners) must exit through Tor. If Tor is down, external calls are blocked — never a
-        clearnet fallback. Loopback, LAN, the local LLM, Postgres, the UI and the recording proxy
+        http, scanners) must exit through Tor. If Tor is down, external calls are blocked. Loopback, LAN, the local LLM, Postgres, the UI and the recording proxy
         stay direct.
       </p>
 
@@ -187,12 +184,11 @@ export default function OpsecPage() {
         </Alert>
       )}
 
-      {/* Master toggle + Tor endpoint */}
       <Card>
         <CardHeader>
           <CardTitle>Enforcement</CardTitle>
           <CardDescription>
-            {settings?.in_docker ? "Running in Docker" : "Running natively"} — default Tor host{" "}
+            {settings?.in_docker ? "Running in Docker" : "Running natively"} - default Tor host{" "}
             <code>{settings?.in_docker ? "host.docker.internal" : "127.0.0.1"}</code>.
           </CardDescription>
         </CardHeader>
@@ -246,7 +242,6 @@ export default function OpsecPage() {
         </CardContent>
       </Card>
 
-      {/* Live status + tests */}
       <Card>
         <CardHeader>
           <CardTitle>Status & tests</CardTitle>
@@ -292,7 +287,6 @@ export default function OpsecPage() {
         </CardContent>
       </Card>
 
-      {/* Bypass allowlist */}
       <Card>
         <CardHeader>
           <CardTitle>Bypass allowlist</CardTitle>
@@ -319,7 +313,6 @@ export default function OpsecPage() {
         </CardContent>
       </Card>
 
-      {/* Leak log */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

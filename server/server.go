@@ -837,7 +837,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/settings", s.putSettings)
 	mux.HandleFunc("GET /api/settings/noise", s.noiseStatus) // current noise profile + per-host counters (no reset)
 
-	// Opsec (System > Opsec): code-enforced anonymous egress via Tor.
 	mux.HandleFunc("GET /api/opsec/settings", s.getOpsecSettings)
 	mux.HandleFunc("PUT /api/opsec/settings", s.putOpsecSettings)
 	mux.HandleFunc("GET /api/opsec/status", s.opsecStatus)

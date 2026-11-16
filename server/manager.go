@@ -478,9 +478,6 @@ func NewManager(dir, proxyAddr string) (*Manager, error) {
 	if v, ok, _ := pg.GetSetting(settingGlobalProxy); ok {
 		m.globalProxy = strings.TrimSpace(v)
 	}
-	// Opsec (default off): load persisted config, publish the live opsec state,
-	// install the leak sink, and write the proxychains/torsocks configs. Loaded
-	// before the MITM upstream is set so effectiveUpstream sees Tor when on.
 	m.loadOpsec()
 	if m.traffic != nil {
 		if err := m.traffic.SetUpstreamProxy(m.effectiveUpstream()); err != nil {
@@ -795,11 +792,8 @@ func (m *Manager) Traffic() *traffic.Traffic { return m.traffic }
 // capturing, in the agent's own bash env / WebFetch when not.
 func (m *Manager) ProxyAddr() string {
 	if m.traffic != nil && m.TrafficEnabled() {
-		// Recording proxy; its upstream is Tor when Opsec is on (see
-		// effectiveUpstream), so capture still exits via Tor.
 		return m.traffic.ProxyAddr()
 	}
-	// Capture off: under Opsec, exit directly via Tor; else the global proxy.
 	if op := opsec.Current(); op.Enabled() {
 		return op.TorProxyURL()
 	}
@@ -808,9 +802,6 @@ func (m *Manager) ProxyAddr() string {
 	return m.globalProxy
 }
 
-// effectiveUpstream is the egress proxy the recording MITM forwards to: Tor when
-// Opsec is on (tool → :8788 → Tor → target, preserving capture), else the
-// configured global proxy.
 func (m *Manager) effectiveUpstream() string {
 	if op := opsec.Current(); op.Enabled() {
 		return op.TorProxyURL()

@@ -4,7 +4,7 @@
 
 # ShadowARTEX
 
-**Autonomous penetration testing that keeps its receipts — now with enforced anonymity.**
+**Autonomous penetration testing that keeps its receipts, now with enforced anonymity.**
 
 A mod of [BaaRai/ARTEX](https://github.com/BaaRai/ARTEX) (upstream: [Autumn-27](https://github.com/Autumn-27)) that adds **Opsec**: code-enforced anonymous egress via Tor, fail-closed. AGPL-3.0.
 
@@ -271,7 +271,7 @@ worker remains confined to the intent it claimed.
 ### Opsec: enforced anonymous egress
 
 - **Fail-closed Tor egress for every tool**, off by default: with Opsec on, every external request a
-  tool makes — WebFetch, the http custom tools, the enrich probe and Bash-launched scanners — must
+  tool makes, WebFetch, the http custom tools, the enrich probe and Bash-launched scanners, must
   leave through the Tor SOCKS5 proxy. If Tor is unreachable the call is **blocked**, never sent in the
   clear; there is no clearnet fallback. Enforcement is in the dialer and the tool gate, so it does not
   depend on the model obeying a prompt.
@@ -279,8 +279,8 @@ worker remains confined to the intent it claimed.
   recording proxy, PostgreSQL and the configured local LLM reachable without Tor, so a local
   Ollama/OpenAI-compatible server keeps working whether Tor is up or down.
 - **Remote DNS, un-proxyable modes blocked**: names resolve through Tor (`socks5h`), and commands
-  that cannot be anonymised — raw-socket/SYN scans (`nmap -sS/-sU/-O`), ICMP (`ping`, `traceroute`),
-  `masscan`/`zmap` — are refused with a clear reason; only `nmap -sT -Pn` is allowed.
+  that cannot be anonymised, raw-socket/SYN scans (`nmap -sS/-sU/-O`), ICMP (`ping`, `traceroute`),
+  `masscan`/`zmap`, are refused with a clear reason; only `nmap -sT -Pn` is allowed.
 - **System → Opsec page**: a master toggle, Tor host/port and control port, Test Tor / DNS-leak /
   clearnet-block checks, the live exit IP and `IsTor` status, circuit rotation (NEWNYM), a bypass
   allowlist editor and the blocked-egress log; a red banner warns when Opsec is on and Tor is down.
@@ -334,7 +334,7 @@ Legacy SSE servers usually establish the event stream with `GET /sse` and receiv
 ### Option 3: prebuilt binaries (Releases)
 
 Download the zip for your platform from [Releases](https://github.com/flyrrr/ShadowARTEX/releases)
-(available only once a ShadowARTEX release is published — otherwise use Docker (Option 2) or build
+(available only once a ShadowARTEX release is published, otherwise use Docker (Option 2) or build
 from source (Option 4)). It contains `artex`, `start.sh` (`start.bat` on Windows), `skills/` and
 `config.example.json`:
 
@@ -721,7 +721,7 @@ Operational security properties:
 
 ## About this fork
 
-**ShadowARTEX** is a mod of [ARTEX](https://github.com/BaaRai/ARTEX) by [flyrrr](https://github.com/flyrrr). It adds **Opsec** — code-enforced anonymous egress via Tor (fail-closed) — described in the [Opsec section](#opsec-enforced-anonymous-egress) above and in [CHANGELOG.md](CHANGELOG.md).
+**ShadowARTEX** is a mod of [ARTEX](https://github.com/BaaRai/ARTEX) by [flyrrr](https://github.com/flyrrr). It adds **Opsec**, code-enforced anonymous egress via Tor (fail-closed), described in the [Opsec section](#opsec-enforced-anonymous-egress) above and in [CHANGELOG.md](CHANGELOG.md).
 
 [BaaRai/ARTEX](https://github.com/BaaRai/ARTEX) is the English translation and continuation of the original ARTEX by [Autumn-27](https://github.com/Autumn-27) (the original upstream is no longer public, so the link points to the author profile). ShadowARTEX keeps the same AGPL-3.0 license and all prior attribution; its own changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 

@@ -1697,7 +1697,7 @@ export interface OpsecSettings {
   tor_host: string;
   tor_port: number;
   control_port: number;
-  control_password: string; // masked placeholder when set
+  control_password: string;
   control_password_set: boolean;
   bypass_list: string;
   in_docker: boolean;

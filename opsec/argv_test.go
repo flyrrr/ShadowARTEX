@@ -8,16 +8,16 @@ func TestClassifyBashBlocks(t *testing.T) {
 		"nmap -sU -p53 target",
 		"nmap -O scanme.example.com",
 		"nmap -sn 192.168.1.0/24",
-		"nmap scanme.example.com",     // no -sT -Pn
-		"nmap -sT scanme.example.com", // missing -Pn
+		"nmap scanme.example.com",
+		"nmap -sT scanme.example.com",
 		"ping -c1 example.com",
 		"traceroute example.com",
 		"hping3 -S -p80 target",
 		"masscan -p80 10.0.0.0/8",
-		"curl example.com | nmap -sS -iL -", // dangerous program in a pipe
+		"curl example.com | nmap -sS -iL -",
 		"nmap --traceroute -sT -Pn target",
-		"sudo nmap -sS target",            // raw scan behind a wrapper
-		"proxychains4 -q nmap -sU target", // udp scan behind proxychains
+		"sudo nmap -sS target",
+		"proxychains4 -q nmap -sU target",
 	}
 	for _, cmd := range blocked {
 		if b, reason := ClassifyBash(cmd); !b {

@@ -17,10 +17,6 @@ import (
 	"github.com/Autumn-27/artex/opsec"
 )
 
-// opsecApplyPacing elevates the egress noise profile to at least "quiet" while
-// Opsec is on, so external traffic is paced (2 req/s/host, jitter, backoff). A
-// stronger profile the operator already chose (balanced/aggressive) is left as
-// is; only "off" is raised.
 func opsecApplyPacing(enabled bool) {
 	if !enabled {
 		return
@@ -33,11 +29,6 @@ func opsecApplyPacing(enabled bool) {
 	}
 }
 
-// ---- Manager: opsec config load / apply ----
-
-// opsecBypassFromLLM derives bypass allowlist entries from the LLM profiles'
-// base URLs, so a local LLM reached by hostname (e.g. http://ollama.lan:11434)
-// stays direct. LAN IPs are already covered by the RFC1918 defaults.
 func (m *Manager) opsecBypassFromLLM() []string {
 	profiles, err := m.pg.ListProfiles()
 	if err != nil {
@@ -62,16 +53,12 @@ func (m *Manager) opsecBypassFromLLM() []string {
 	return out
 }
 
-// buildOpsecConfig reads the persisted opsec settings and builds the opsec
-// Config, merging the user bypass list with the LLM-derived hosts.
 func (m *Manager) buildOpsecConfig() opsec.Config {
 	cfg := opsec.Config{Enabled: m.pg.GetBool(pgdb.SettingOpsecEnabled, false)}
 	if v, ok, _ := m.pg.GetSetting(pgdb.SettingOpsecTorHost); ok {
 		cfg.TorHost = strings.TrimSpace(v)
 	}
-	// Env fallback for a fresh install: the bundled docker-compose sets
-	// ARTEX_OPSEC_TOR_HOST=tor so the sidecar Tor is used without manual config.
-	// A stored setting (above) always wins.
+
 	if cfg.TorHost == "" {
 		cfg.TorHost = strings.TrimSpace(os.Getenv("ARTEX_OPSEC_TOR_HOST"))
 	}
@@ -90,7 +77,6 @@ func (m *Manager) opsecBypassSetting() string {
 	return v
 }
 
-// parseBypassList splits a user bypass list on commas, newlines and spaces.
 func parseBypassList(raw string) []string {
 	fields := strings.FieldsFunc(raw, func(r rune) bool {
 		return r == ',' || r == '\n' || r == '\r' || r == ' ' || r == '\t'
@@ -104,8 +90,6 @@ func parseBypassList(raw string) []string {
 	return out
 }
 
-// loadOpsec publishes the live opsec state from settings, installs the durable
-// leak sink (Postgres) and writes the proxychains/torsocks configs when on.
 func (m *Manager) loadOpsec() {
 	opsec.SetLeakSink(func(l opsec.Leak) {
 		if err := m.pg.InsertOpsecLeak(pgdb.OpsecLeak{
@@ -126,9 +110,6 @@ func (m *Manager) loadOpsec() {
 	}
 }
 
-// applyOpsec rebuilds the live opsec state from settings and re-points the
-// recording proxy's upstream. Callers rebuild agents (applyLLM) afterwards so
-// the capture-off bash env / WebFetch path picks up the change.
 func (m *Manager) applyOpsec() error {
 	st := opsec.SetConfig(m.buildOpsecConfig())
 	opsecApplyPacing(st.Enabled())
@@ -148,22 +129,17 @@ func (m *Manager) applyOpsec() error {
 	return nil
 }
 
-// OpsecState returns the live opsec state (for handlers).
 func (m *Manager) OpsecState() *opsec.State { return opsec.Current() }
 
-// opsecSettingsInput is the PUT body for /api/opsec/settings. Every field is a
-// pointer so an omitted field keeps its stored value.
 type opsecSettingsInput struct {
 	Enabled         *bool   `json:"enabled"`
 	TorHost         *string `json:"tor_host"`
 	TorPort         *int    `json:"tor_port"`
 	ControlPort     *int    `json:"control_port"`
-	ControlPassword *string `json:"control_password"` // masked placeholder = keep
+	ControlPassword *string `json:"control_password"`
 	BypassList      *string `json:"bypass_list"`
 }
 
-// SetOpsecConfig persists the given opsec settings and applies them. Callers
-// must rebuild agents (applyLLM) afterwards.
 func (m *Manager) SetOpsecConfig(in opsecSettingsInput) error {
 	if in.Enabled != nil {
 		if err := m.pg.SetBool(pgdb.SettingOpsecEnabled, *in.Enabled); err != nil {
@@ -198,10 +174,6 @@ func (m *Manager) SetOpsecConfig(in opsecSettingsInput) error {
 	return m.applyOpsec()
 }
 
-// ---- HTTP handlers ----
-
-// opsecSettingsResponse is the GET /api/opsec/settings body (no secrets in
-// clear; the control password is masked when set).
 func (s *Server) opsecSettingsView() map[string]any {
 	st := s.m.OpsecState()
 	pass, _, _ := s.m.pg.GetSetting(pgdb.SettingOpsecControlPass)
@@ -244,14 +216,11 @@ func (s *Server) putOpsecSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	// Rebuild agents so the capture-off bash env / WebFetch path picks up the
-	// new egress immediately (same contract as the global proxy).
+
 	s.rebuildAgents()
 	writeJSON(w, 200, s.opsecSettingsView())
 }
 
-// rebuildAgents re-applies the current LLM config so agents pick up a changed
-// egress (proxy / opsec), mirroring putSettings; a no-op when no LLM is set.
 func (s *Server) rebuildAgents() {
 	s.cfgMu.Lock()
 	cfg, on := s.llmCfg, s.llmOn
@@ -263,8 +232,6 @@ func (s *Server) rebuildAgents() {
 	}
 }
 
-// opsecStatus is a fast, non-probing status: config + tooling + whether the
-// banner should warn. The live Tor probe is the Test Tor button.
 func (s *Server) opsecStatus(w http.ResponseWriter, r *http.Request) {
 	st := s.m.OpsecState()
 	writeJSON(w, 200, map[string]any{

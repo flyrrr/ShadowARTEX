@@ -2,19 +2,15 @@ package db
 
 import "time"
 
-// Opsec settings keys (key/value store). Enforcement config is non-secret; the
-// Tor control-port password is a secret setting (secretSettingKeys), sealed at
-// rest with keys/secret.key like the other secrets.
 const (
 	SettingOpsecEnabled     = "opsec_enabled"
 	SettingOpsecTorHost     = "opsec_tor_host"
 	SettingOpsecTorPort     = "opsec_tor_port"
 	SettingOpsecControlPort = "opsec_tor_control_port"
-	SettingOpsecControlPass = "opsec_tor_control_password" // secret
-	SettingOpsecBypassList  = "opsec_bypass_list"          // newline/comma-separated hosts/CIDRs
+	SettingOpsecControlPass = "opsec_tor_control_password"
+	SettingOpsecBypassList  = "opsec_bypass_list"
 )
 
-// OpsecLeak is one persisted opsec event (mirrors opsec.Leak).
 type OpsecLeak struct {
 	ID     int64     `json:"id"`
 	TS     time.Time `json:"ts"`
@@ -24,13 +20,8 @@ type OpsecLeak struct {
 	Reason string    `json:"reason"`
 }
 
-// opsecLeakKeep caps the retained rows; older rows are trimmed on insert so the
-// append-only log cannot grow without bound.
 const opsecLeakKeep = 5000
 
-// InsertOpsecLeak appends one leak event and trims the table to the most recent
-// opsecLeakKeep rows. Best effort: a nil/closed DB is a silent no-op so logging
-// a leak never breaks the tool path.
 func (d *DB) InsertOpsecLeak(l OpsecLeak) error {
 	if d == nil {
 		return nil
@@ -49,8 +40,6 @@ func (d *DB) InsertOpsecLeak(l OpsecLeak) error {
 	return nil
 }
 
-// ListOpsecLeaks returns the most recent leak events, newest first, up to limit
-// (<=0 or >1000 is clamped to 200).
 func (d *DB) ListOpsecLeaks(limit int) ([]OpsecLeak, error) {
 	if limit <= 0 || limit > 1000 {
 		limit = 200

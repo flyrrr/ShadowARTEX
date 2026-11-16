@@ -140,11 +140,6 @@ func (g *Guard) gateScope(ctx context.Context) (intercept.TargetScope, bool) {
 // rule or by the judge does not satisfy the gate; an ask and an unpinned target
 // share one approval request.
 func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event) hook.Result {
-	// Opsec egress-mode block: under Opsec, a Bash command that uses a mode that
-	// cannot be carried through Tor/SOCKS5 (raw-packet nmap scans, OS detection,
-	// ICMP/raw-socket tools) is refused here, before any target gate. It applies
-	// to every agent and every guard mode, and never depends on the LLM obeying
-	// the prompt.
 	if res, blocked := g.opsecArgvBlock(ctx, ev); blocked {
 		return res
 	}
@@ -342,10 +337,6 @@ func (g *Guard) Attributions() map[string]int {
 	return out
 }
 
-// opsecArgvBlock refuses a Bash / interactive-shell command that uses an
-// un-proxyable egress mode while Opsec is on. blocked is false (and the call
-// continues) when Opsec is off, the tool carries no shell command, or the
-// command is proxyable.
 func (g *Guard) opsecArgvBlock(ctx context.Context, ev hook.Event) (hook.Result, bool) {
 	if !opsec.Enabled() {
 		return hook.Result{}, false
@@ -378,7 +369,6 @@ func (g *Guard) opsecArgvBlock(ctx context.Context, ev hook.Event) (hook.Result,
 	return g.block(ev.ToolName, systemBlockMessage("Opsec: "+reason), cmd), true
 }
 
-// opsecWorker names the agent/worker of ctx for a leak record, best effort.
 func opsecWorker(ctx context.Context) string {
 	if s, ok := intercept.TargetScopeFromContext(ctx); ok {
 		if s.TaskID != "" {

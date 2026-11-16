@@ -245,13 +245,6 @@ func proxyEnv(proxyAddr, caCert string) []string {
 	return opsecBashEnv(env)
 }
 
-// opsecBashEnv adjusts a Bash proxy env for Opsec: when Opsec is on it forces
-// remote DNS on the SOCKS5 proxy (socks5 -> socks5h, so target names never
-// resolve on the host) and sets NO_PROXY to the bypass allowlist so loopback,
-// LAN, the local LLM, Postgres, the UI and the recording proxy stay direct.
-// When Opsec is off the env is returned unchanged. It is a no-op when the proxy
-// is the recording proxy (an http:// URL whose Go-side upstream is Tor), since
-// that path already resolves names remotely through the SOCKS5 upstream.
 func opsecBashEnv(env []string) []string {
 	op := opsec.Current()
 	if !op.Enabled() || len(env) == 0 {

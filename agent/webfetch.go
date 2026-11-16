@@ -26,8 +26,6 @@ import (
 func withWebFetch(ctx context.Context, tools []actool.CoreTool, proxy, caCert string) []actool.CoreTool {
 	scope, scoped := intercept.TargetScopeFromContext(ctx)
 	gated := scoped && scope.Enabled != nil && scope.Enabled()
-	// Under Opsec the direct retry is turned off too: a Tor failure must block,
-	// never fall back to a proxy-less clearnet request.
 	noDirect := gated || opsec.Enabled()
 	webFetch := actool.NewWebFetch(actool.WebFetchConfig{Proxy: proxy, CACert: caCert, CheckRedirect: intercept.RedirectCheck("WebFetch"),
 		DialContext: intercept.PinnedDialer("WebFetch", scoped), DisableDirectRetry: noDirect})

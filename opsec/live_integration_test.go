@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-// TestLiveTor exercises the real Tor path end to end. It is skipped unless
-// ARTEX_OPSEC_LIVE=1, so it never runs in the normal suite; the Docker
-// acceptance sets it with a reachable Tor SOCKS5 (ARTEX_OPSEC_TOR_HOST/PORT).
 func TestLiveTor(t *testing.T) {
 	if os.Getenv("ARTEX_OPSEC_LIVE") == "" {
 		t.Skip("set ARTEX_OPSEC_LIVE=1 with a reachable Tor to run")
@@ -53,9 +50,6 @@ func TestLiveTor(t *testing.T) {
 	}
 }
 
-// TestLiveTorDown proves fail-closed: with Tor unreachable, TestTor reports not
-// reachable (the caller then blocks). Gated by ARTEX_OPSEC_LIVE_DOWN with a dead
-// endpoint in ARTEX_OPSEC_TOR_HOST/PORT.
 func TestLiveTorDown(t *testing.T) {
 	if os.Getenv("ARTEX_OPSEC_LIVE_DOWN") == "" {
 		t.Skip("set ARTEX_OPSEC_LIVE_DOWN=1 with a dead Tor endpoint to run")
