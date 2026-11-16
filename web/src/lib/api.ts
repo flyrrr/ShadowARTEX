@@ -58,6 +58,11 @@ import type {
   JudgeUsage,
   LLMPoolStatus,
   LLMProfile,
+  OpsecLeak,
+  OpsecSettings,
+  OpsecSettingsInput,
+  OpsecStatus,
+  OpsecTorStatus,
   LLMRecordDetail,
   LLMRecordItem,
   LLMRetryOverride,
@@ -1300,6 +1305,17 @@ export const api = {
     });
     if (!r.ok) throw new Error(await r.text());
   },
+
+  // ---- opsec (anonymous egress via Tor) ----
+  opsecSettings: () => get<OpsecSettings>("/opsec/settings"),
+  putOpsecSettings: (body: OpsecSettingsInput) => put<OpsecSettings>("/opsec/settings", body),
+  opsecStatus: () => get<OpsecStatus>("/opsec/status"),
+  opsecTestTor: () => post<OpsecTorStatus>("/opsec/test-tor"),
+  opsecTestDNSLeak: () => post<{ ok: boolean; detail: string; exit_ip?: string }>("/opsec/test-dns-leak"),
+  opsecTestClearnetBlock: (target?: string) =>
+    post<{ blocked: boolean; target: string; reason: string }>("/opsec/test-clearnet-block", { target: target ?? "" }),
+  opsecNewnym: () => post<{ ok: boolean; error?: string }>("/opsec/newnym"),
+  opsecLeaks: (limit = 200) => get<{ leaks: OpsecLeak[] }>(`/opsec/leaks?limit=${limit}`),
 
   // ---- intercept LLM judge (model fallback approval, global config) ----
   interceptGetJudgeConfig: () => get<JudgeConfig>("/intercept/judge"),

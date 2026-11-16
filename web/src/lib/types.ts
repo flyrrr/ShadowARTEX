@@ -1681,3 +1681,65 @@ export interface InterceptExecution {
   seq: number;
   items: Activity[];
 }
+
+// ---- Opsec (anonymous egress via Tor) ----
+export interface OpsecTooling {
+  proxychains: boolean;
+  proxychains_path?: string;
+  torsocks: boolean;
+  torsocks_path?: string;
+  tor: boolean;
+  tor_path?: string;
+}
+
+export interface OpsecSettings {
+  enabled: boolean;
+  tor_host: string;
+  tor_port: number;
+  control_port: number;
+  control_password: string; // masked placeholder when set
+  control_password_set: boolean;
+  bypass_list: string;
+  in_docker: boolean;
+  tor_proxy_url: string;
+  derived_bypass: string[];
+  tooling: OpsecTooling;
+  proxychains_conf: string;
+  torsocks_conf: string;
+}
+
+export interface OpsecSettingsInput {
+  enabled?: boolean;
+  tor_host?: string;
+  tor_port?: number;
+  control_port?: number;
+  control_password?: string;
+  bypass_list?: string;
+}
+
+export interface OpsecStatus {
+  enabled: boolean;
+  tor_addr: string;
+  in_docker: boolean;
+  tooling: OpsecTooling;
+  bypass_cnt: number;
+}
+
+export interface OpsecTorStatus {
+  reachable: boolean;
+  is_tor: boolean;
+  exit_ip?: string;
+  addr: string;
+  in_docker: boolean;
+  checked_at: string;
+  error?: string;
+}
+
+export interface OpsecLeak {
+  id: number;
+  ts: string;
+  worker: string;
+  tool: string;
+  target: string;
+  reason: string;
+}

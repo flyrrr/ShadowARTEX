@@ -23,6 +23,7 @@ import (
 	"github.com/Autumn-27/artex/enrich"
 	"github.com/Autumn-27/artex/guard"
 	"github.com/Autumn-27/artex/intercept"
+	"github.com/Autumn-27/artex/opsec"
 	"github.com/Autumn-27/artex/traffic"
 	actool "github.com/Autumn-27/norma/tool"
 )
@@ -414,7 +415,7 @@ func NewManager(dir, proxyAddr string) (*Manager, error) {
 	}
 	m := &Manager{dir: dir, pg: pg, assets: pg.Assets(), tasks: map[string]*Task{}, interceptor: intercept.New(pg)}
 	// Behind the global egress proxy a target approval is name-only.
-	m.interceptor.SetUpstreamProxyCheck(func() bool { return m.GlobalProxy() != "" })
+	m.interceptor.SetUpstreamProxyCheck(func() bool { return m.GlobalProxy() != "" || opsec.Current().Enabled() })
 	// The platform's own endpoints need no target approval.
 	m.interceptor.SetDerivedExemptions(m.targetGateEndpoints)
 	if proxyAddr != "" {
@@ -477,9 +478,13 @@ func NewManager(dir, proxyAddr string) (*Manager, error) {
 	if v, ok, _ := pg.GetSetting(settingGlobalProxy); ok {
 		m.globalProxy = strings.TrimSpace(v)
 	}
+	// Opsec (default off): load persisted config, publish the live opsec state,
+	// install the leak sink, and write the proxychains/torsocks configs. Loaded
+	// before the MITM upstream is set so effectiveUpstream sees Tor when on.
+	m.loadOpsec()
 	if m.traffic != nil {
-		if err := m.traffic.SetUpstreamProxy(m.globalProxy); err != nil {
-			log.Printf("[proxy] global proxy %q invalid, ignored: %v", m.globalProxy, err)
+		if err := m.traffic.SetUpstreamProxy(m.effectiveUpstream()); err != nil {
+			log.Printf("[proxy] upstream proxy invalid, ignored: %v", err)
 		}
 	}
 	m.enrich = enrich.New(m.assets, m.ProxyAddr, 4)
@@ -790,7 +795,25 @@ func (m *Manager) Traffic() *traffic.Traffic { return m.traffic }
 // capturing, in the agent's own bash env / WebFetch when not.
 func (m *Manager) ProxyAddr() string {
 	if m.traffic != nil && m.TrafficEnabled() {
+		// Recording proxy; its upstream is Tor when Opsec is on (see
+		// effectiveUpstream), so capture still exits via Tor.
 		return m.traffic.ProxyAddr()
+	}
+	// Capture off: under Opsec, exit directly via Tor; else the global proxy.
+	if op := opsec.Current(); op.Enabled() {
+		return op.TorProxyURL()
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.globalProxy
+}
+
+// effectiveUpstream is the egress proxy the recording MITM forwards to: Tor when
+// Opsec is on (tool → :8788 → Tor → target, preserving capture), else the
+// configured global proxy.
+func (m *Manager) effectiveUpstream() string {
+	if op := opsec.Current(); op.Enabled() {
+		return op.TorProxyURL()
 	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -834,7 +857,7 @@ func (m *Manager) SetGlobalProxy(raw string) error {
 	m.globalProxy = raw
 	m.mu.Unlock()
 	if m.traffic != nil {
-		if err := m.traffic.SetUpstreamProxy(raw); err != nil {
+		if err := m.traffic.SetUpstreamProxy(m.effectiveUpstream()); err != nil {
 			return err
 		}
 	}

@@ -9,7 +9,38 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Autumn-27/artex/opsec"
 )
+
+// OpsecClearnetBlocked is the dial error code when Opsec blocks a direct
+// connection to an external target (no Tor path).
+const OpsecClearnetBlocked = "OPSEC_CLEARNET_BLOCKED"
+
+// opsecGate blocks a direct connection to an external target when Opsec is on.
+// It runs before the target gate and independently of it: every platform-owned
+// HTTP client dials through PinnedDialer, so when a proxy (Tor / the recording
+// proxy, both bypass-listed) is in use the dial is to that proxy and passes,
+// while a direct dial to an external target — a client with no proxy, or a
+// leaked fallback — is refused with no clearnet fallback and logged. addr is
+// host:port as net/http dials it.
+func opsecGate(toolName, addr string) error {
+	op := opsec.Current()
+	if !op.Enabled() {
+		return nil
+	}
+	host := addr
+	if h, _, err := net.SplitHostPort(addr); err == nil {
+		host = h
+	}
+	if op.Bypass(host) {
+		return nil
+	}
+	opsec.LogLeak(opsec.Leak{Tool: toolName, Target: addr,
+		Reason: "direct connection to an external target blocked; Opsec requires all external egress via Tor (no clearnet fallback)"})
+	return &dialError{code: OpsecClearnetBlocked, target: addr,
+		reason: "Opsec is on and this is a direct connection to an external target; all external egress must go through Tor (the recording proxy, or proxychains), and there is no clearnet fallback"}
+}
 
 // The HTTP clients the platform owns (WebFetch and the custom http tool)
 // connect through PinnedDialer. The hook, the rendered-URL gate and the
@@ -37,6 +68,9 @@ var baseDial = (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Seco
 // endpoint) dials as before, and so does every client while the gate is off.
 func PinnedDialer(toolName string, scoped bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if err := opsecGate(toolName, addr); err != nil {
+			return nil, err
+		}
 		scope, ok := TargetScopeFromContext(ctx)
 		switch {
 		case !ok && scoped:

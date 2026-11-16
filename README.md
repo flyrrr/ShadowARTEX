@@ -270,6 +270,26 @@ worker remains confined to the intent it claimed.
 - **Single binary**: the Next.js UI is embedded with `go:embed`; PostgreSQL is the only external
   dependency.
 
+### Opsec: enforced anonymous egress
+
+- **Fail-closed Tor egress for every tool**, off by default: with Opsec on, every external request a
+  tool makes — WebFetch, the http custom tools, the enrich probe and Bash-launched scanners — must
+  leave through the Tor SOCKS5 proxy. If Tor is unreachable the call is **blocked**, never sent in the
+  clear; there is no clearnet fallback. Enforcement is in the dialer and the tool gate, so it does not
+  depend on the model obeying a prompt.
+- **LAN stays direct**: a bypass allowlist keeps loopback, RFC1918/link-local ranges, the UI, the
+  recording proxy, PostgreSQL and the configured local LLM reachable without Tor, so a local
+  Ollama/OpenAI-compatible server keeps working whether Tor is up or down.
+- **Remote DNS, un-proxyable modes blocked**: names resolve through Tor (`socks5h`), and commands
+  that cannot be anonymised — raw-socket/SYN scans (`nmap -sS/-sU/-O`), ICMP (`ping`, `traceroute`),
+  `masscan`/`zmap` — are refused with a clear reason; only `nmap -sT -Pn` is allowed.
+- **System → Opsec page**: a master toggle, Tor host/port and control port, Test Tor / DNS-leak /
+  clearnet-block checks, the live exit IP and `IsTor` status, circuit rotation (NEWNYM), a bypass
+  allowlist editor and the blocked-egress log; a red banner warns when Opsec is on and Tor is down.
+- **Capture preserved**: with traffic recording on, tool traffic chains tool → recording proxy → Tor
+  → target, so evidence capture still works under Tor. A bundled `tor` sidecar makes it work out of
+  the box under Docker (`ARTEX_OPSEC_TOR_HOST`).
+
 ---
 
 ## Installation
@@ -692,6 +712,10 @@ Operational security properties:
 - **Untrusted tool output**: framed as data for every agent by default (prompt-injection boundary).
 - **Release integrity**: SHA-256 sums, CycloneDX SBOM and GitHub build provenance attestations for
   release archives.
+- **Enforced anonymous egress (Opsec)**: with Opsec on (off by default), all external tool traffic
+  must exit via Tor (SOCKS5, remote DNS); a direct connection to a non-bypass host is refused and
+  logged, with no clearnet fallback, and un-proxyable scan modes are blocked. Local LLM, PostgreSQL,
+  the UI and the recording proxy stay reachable through a bypass allowlist.
 
 ---
 

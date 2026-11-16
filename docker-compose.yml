@@ -14,6 +14,34 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # Tor SOCKS5 proxy for Opsec (System > Opsec). ARTEX reaches it at tor:9050 on
+  # the compose network when Opsec is enabled. It runs from the SAME locally
+  # built image as artex (tor is installed in it), so no third-party image is
+  # pulled — matching the supply-chain note on the artex service below. The
+  # SOCKS5 and control ports are only exposed on the internal network, never on
+  # the host. NEWNYM uses the open control port (null auth) on this private
+  # network; set a HashedControlPassword via a custom torrc to require one.
+  tor:
+    build:
+      context: .
+      args:
+        ARTEX_VERSION: ${ARTEX_VERSION:-dev}
+    image: artex:local
+    entrypoint: ["tor"]
+    command:
+      - "--SocksPort"
+      - "0.0.0.0:9050"
+      - "--ControlPort"
+      - "0.0.0.0:9051"
+      - "--CookieAuthentication"
+      - "0"
+      - "--DataDirectory"
+      - "/tmp/tor"
+    expose:
+      - "9050"
+      - "9051"
+    restart: unless-stopped
+
   artex:
     # Built from this checkout. The previous reference was a third-party
     # namespace whose repository is gone: whoever controls that name could
@@ -45,6 +73,10 @@ services:
       # Noise profile for target requests: off (default) | quiet | balanced | aggressive.
       ARTEX_NOISE_PROFILE: ${ARTEX_NOISE_PROFILE:-}
       ARTEX_TARGET_USER_AGENT: ${ARTEX_TARGET_USER_AGENT:-}
+      # Opsec (System > Opsec): default Tor host for a fresh install. Points at
+      # the bundled `tor` sidecar; a stored UI setting overrides it. Leave empty
+      # to use the code default (host.docker.internal in Docker, 127.0.0.1 native).
+      ARTEX_OPSEC_TOR_HOST: ${ARTEX_OPSEC_TOR_HOST:-tor}
       # Hierarchical run budgets: unset or 0 = unlimited (no change). See README.
       ARTEX_TASK_BUDGET_TOKENS: ${ARTEX_TASK_BUDGET_TOKENS:-}
       ARTEX_TASK_BUDGET_TURNS: ${ARTEX_TASK_BUDGET_TURNS:-}

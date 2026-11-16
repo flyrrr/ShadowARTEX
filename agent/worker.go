@@ -13,6 +13,7 @@ import (
 	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/artex/egress"
 	"github.com/Autumn-27/artex/intercept"
+	"github.com/Autumn-27/artex/opsec"
 	"github.com/Autumn-27/norma/agentcore"
 	"github.com/Autumn-27/norma/harness"
 	"github.com/Autumn-27/norma/llm"
@@ -241,6 +242,36 @@ func proxyEnv(proxyAddr, caCert string) []string {
 			"NODE_EXTRA_CA_CERTS="+caCert,
 		)
 	}
+	return opsecBashEnv(env)
+}
+
+// opsecBashEnv adjusts a Bash proxy env for Opsec: when Opsec is on it forces
+// remote DNS on the SOCKS5 proxy (socks5 -> socks5h, so target names never
+// resolve on the host) and sets NO_PROXY to the bypass allowlist so loopback,
+// LAN, the local LLM, Postgres, the UI and the recording proxy stay direct.
+// When Opsec is off the env is returned unchanged. It is a no-op when the proxy
+// is the recording proxy (an http:// URL whose Go-side upstream is Tor), since
+// that path already resolves names remotely through the SOCKS5 upstream.
+func opsecBashEnv(env []string) []string {
+	op := opsec.Current()
+	if !op.Enabled() || len(env) == 0 {
+		return env
+	}
+	for i, kv := range env {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		switch strings.ToUpper(k) {
+		case "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY":
+			if strings.HasPrefix(v, "socks5://") {
+				env[i] = k + "=socks5h://" + strings.TrimPrefix(v, "socks5://")
+			}
+		}
+	}
+	if np := op.NoProxyList(); np != "" {
+		env = append(env, "NO_PROXY="+np, "no_proxy="+np)
+	}
 	return env
 }
 
@@ -331,7 +362,7 @@ func workerSystem(proxyAddr, caCert, dataDir, runDir string) string {
 	// caCert is present only when the recording MITM is on, which is exactly when
 	// the traffic_* tools are registered — so it gates the traffic-tool note.
 	// Optional finding guidance is added for every role after tool resolution.
-	return body + untrustedContentTail(body) + workerTrafficBlock(caCert != "") + workerArtifactSpec(runDir) + noiseProfileBlock()
+	return body + untrustedContentTail(body) + workerTrafficBlock(caCert != "") + workerArtifactSpec(runDir) + noiseProfileBlock() + opsecPromptBlock()
 }
 
 // renderIntentTask formats the claimed intent for the worker's launch USER message:

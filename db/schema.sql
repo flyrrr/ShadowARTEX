@@ -367,6 +367,19 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Opsec leak log (opsec package): one row per blocked clearnet attempt, blocked
+-- un-proxyable scan mode, Tor failure, or DNS-leak risk, shown on System > Opsec.
+-- Append-only; trimmed by row count in db/opsec.go, so it never grows unbounded.
+CREATE TABLE IF NOT EXISTS opsec_leak_log (
+    id      BIGSERIAL PRIMARY KEY,
+    ts      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    worker  TEXT NOT NULL DEFAULT '',
+    tool    TEXT NOT NULL DEFAULT '',
+    target  TEXT NOT NULL DEFAULT '',
+    reason  TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_opsec_leak_log_ts ON opsec_leak_log(ts DESC);
+
 CREATE TABLE IF NOT EXISTS llm_profiles (
     id               BIGSERIAL PRIMARY KEY,
     name             TEXT NOT NULL UNIQUE,

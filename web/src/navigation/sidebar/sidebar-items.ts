@@ -20,6 +20,7 @@ import {
   Sparkles,
   Target,
   Terminal,
+  VenetianMask,
   Wrench,
 } from "lucide-react";
 
@@ -91,6 +92,7 @@ export const sidebarItems: NavGroup[] = [
       { id: "intercept", title: "Interception Rules", url: "/system/intercept", icon: ShieldAlert },
       { id: "asset-intercept", title: "Asset Interception", url: "/system/intercept/assets", icon: Ban },
       { id: "approvals", title: "Approval Records", url: "/system/intercept/approvals", icon: ClipboardList },
+      { id: "opsec", title: "Opsec", url: "/system/opsec", icon: VenetianMask },
       { id: "logs", title: "Logs", url: "/system/logs", icon: ScrollText },
       { id: "settings", title: "System Settings", url: "/system/settings", icon: Settings2 },
     ],
