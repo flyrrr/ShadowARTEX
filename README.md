@@ -42,8 +42,8 @@ justify it, and every autonomous action passes through scope rules, approval gat
 ## Quick start
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/flyrrr/ShadowARTEX.git
+cd ShadowARTEX
 cp .env.example .env            # set POSTGRES_PASSWORD (and optionally an LLM key)
 docker compose up -d --build    # builds from this checkout, starts PostgreSQL
 ```
@@ -298,8 +298,8 @@ worker remains confined to the intent it claimed.
 ### Option 1: one-click install script (recommended)
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/flyrrr/ShadowARTEX.git
+cd ShadowARTEX
 ./install.sh
 ```
 
@@ -317,8 +317,8 @@ first-run claim), or keep loopback and use a reverse proxy or SSH tunnel.
 ### Option 2: Docker Compose (manual)
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/flyrrr/ShadowARTEX.git
+cd ShadowARTEX
 cp .env.example .env            # set POSTGRES_PASSWORD, optionally ANTHROPIC_API_KEY
 docker compose up -d --build
 # → http://localhost:8787
@@ -333,8 +333,10 @@ Legacy SSE servers usually establish the event stream with `GET /sse` and receiv
 
 ### Option 3: prebuilt binaries (Releases)
 
-Download the zip for your platform from [Releases](https://github.com/BaaRai/ARTEX/releases). It
-contains `artex`, `start.sh` (`start.bat` on Windows), `skills/` and `config.example.json`:
+Download the zip for your platform from [Releases](https://github.com/flyrrr/ShadowARTEX/releases)
+(available only once a ShadowARTEX release is published — otherwise use Docker (Option 2) or build
+from source (Option 4)). It contains `artex`, `start.sh` (`start.bat` on Windows), `skills/` and
+`config.example.json`:
 
 ```bash
 cp config.example.json config.json   # fill in the database connection
@@ -353,7 +355,7 @@ neither.
 
 ```bash
 sha256sum -c SHA256SUMS                           # add --ignore-missing if you downloaded only some zips
-gh attestation verify <zip> --repo BaaRai/ARTEX   # built by this repository's release workflow
+gh attestation verify <zip> --repo flyrrr/ShadowARTEX   # built by this repository's release workflow
 ```
 
 ### Option 4: build the single binary from source
@@ -538,7 +540,7 @@ when the database holds encrypted secrets and no key is available.
 Daily cron example (03:20, operator crontab):
 
 ```
-20 3 * * * cd /path/to/ARTEX && scripts/backup.sh --with-data >> backups/backup.log 2>&1
+20 3 * * * cd /path/to/ShadowARTEX && scripts/backup.sh --with-data >> backups/backup.log 2>&1
 ```
 
 ### Updating and upgrading
@@ -574,7 +576,7 @@ Your data is unaffected: `./data`, the `pgdata` volume and `./skills` are not pa
 #### Option 1: one-click update script
 
 ```bash
-cd ARTEX
+cd ShadowARTEX
 ./update.sh
 ```
 
@@ -585,7 +587,7 @@ recompile `./artex`; restart the process for it to take effect).
 #### Option 2: Docker Compose (manual)
 
 ```bash
-cd ARTEX
+cd ShadowARTEX
 git pull
 docker compose build artex
 docker compose up -d artex
